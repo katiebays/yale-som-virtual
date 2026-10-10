@@ -2,13 +2,14 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import Professor, { PROFESSORS } from './Professor.jsx'
 import Zaman from './Zaman.jsx'
+import Schott from './Schott.jsx'
 import { DRUMS, LECTERNS } from './layout.js'
 
 // who teaches in which classroom (matches the slide decks); 'zaman' is the AI professor you can chat with
 export const ROOM_PROFESSOR = {
   2400: 'dumbledore', // MGT 402 Basics of Accounting
   2410: 'mcgonagall', // MGT 404 Basics of Economics
-  2420: 'trelawney', // MGT 403 Probability Modeling & Statistics
+  2420: 'schott', // MGT 407 Statistics (EMBA; no room in the database, so he takes the stats room)
   2430: 'slughorn', // MGT 887 Negotiations
   2200: 'zaman', // MGT 409 AI Foundations for Managers (Evans 2200 in the course database)
   2210: 'lockhart', // MGT 538 Mastering Influence & Persuasion
@@ -16,7 +17,8 @@ export const ROOM_PROFESSOR = {
   2230: 'flitwick', // MGT 541 Corporate Finance
 }
 
-const NAMES = { zaman: 'Tauhid Zaman' }
+const NAMES = { zaman: 'Tauhid Zaman', schott: 'Peter Schott' }
+const CHAT_PROFS = { zaman: Zaman, schott: Schott }
 
 function plaqueTex(name) {
   const c = document.createElement('canvas')
@@ -56,8 +58,11 @@ export default function Faculty() {
     <>
       {items.map((it, i) => (
         <group key={i}>
-          {it.who === 'zaman' ? (
-            <Zaman position={it.pos} rotation={it.rot} />
+          {CHAT_PROFS[it.who] ? (
+            (() => {
+              const Prof = CHAT_PROFS[it.who]
+              return <Prof position={it.pos} rotation={it.rot} />
+            })()
           ) : (
             <Professor who={it.who} position={it.pos} rotation={it.rot} phase={i * 1.7} />
           )}

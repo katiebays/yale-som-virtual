@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import Labubu from './Labubu.jsx'
-import { TALKERS, talk } from './talk.js'
+import { useTalker } from './useTalker.js'
 
 // Prof. Tauhid Zaman: black hoodie with a BLACKPINK print, jeans, pink-trim sneakers, glasses,
 // and a pink Labubu keychain swinging from his belt loop. Built from primitives like Professor.jsx.
@@ -47,41 +47,15 @@ function printTex() {
   return t
 }
 
-const lerpAngle = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k
-
 export default function Zaman({ position = [0, 0, 0], rotation = 0, id = 'zaman' }) {
-  const root = useRef()
-  const armR = useRef()
-  const armL = useRef()
+  const { root, head, armR, armL } = useTalker(id, rotation)
   const charm = useRef()
-  const head = useRef()
-  const yaw = useRef(rotation)
   const print = useMemo(() => new THREE.MeshStandardMaterial({ map: printTex(), roughness: 0.9 }), [])
   const hoodie = m(HOODIE)
 
-  useEffect(() => {
-    TALKERS.set(id, { object: root.current })
-    return () => TALKERS.delete(id)
-  }, [id])
-
-  useFrame(({ clock, camera }, dt) => {
+  // the Labubu keychain swings with his steps
+  useFrame(({ clock }) => {
     const t = clock.elapsedTime
-    const r = root.current
-    const chatting = talk.with === id
-    // face the player while chatting, otherwise scan the room like the other professors
-    const target = chatting
-      ? Math.atan2(camera.position.x - r.position.x, camera.position.z - r.position.z)
-      : rotation + Math.sin(t * 0.4) * 0.35
-    yaw.current = lerpAngle(yaw.current, target, Math.min(1, dt * (chatting ? 6 : 2)))
-    r.rotation.y = yaw.current
-    // nod along a little when talking
-    head.current.rotation.x = chatting ? Math.sin(t * 3.1) * 0.05 : 0
-    // talking hands while chatting, a casual "yo" wave every few seconds otherwise
-    const wave = chatting ? 0.6 + Math.sin(t * 2.4) * 0.35 : Math.max(0, Math.sin(t * 0.9)) * 1.1
-    armR.current.rotation.x = -0.15 - wave * 0.9
-    armR.current.rotation.z = -0.2 - (chatting ? 0 : wave * 0.6)
-    armL.current.rotation.x = chatting ? -0.4 + Math.sin(t * 2.4 + 1.3) * 0.25 : 0.05
-    // the Labubu keychain swings with his steps
     charm.current.rotation.z = Math.sin(t * 2.2) * 0.35
     charm.current.rotation.x = Math.sin(t * 1.6 + 0.7) * 0.15
   })

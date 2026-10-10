@@ -6,6 +6,7 @@ export const COURSES = {
   mgt409: { code: 'MGT 409', name: 'AI Foundations for Managers', prof: 'Tauhid Zaman' },
   mgt404: { code: 'MGT 404', name: 'Basics of Economics', prof: 'Minerva McGonagall' },
   mgt403: { code: 'MGT 403', name: 'Probability Modeling & Statistics', prof: 'Sybill Trelawney' },
+  mgt407: { code: 'MGT 407', name: 'Statistics', prof: 'Peter Schott' },
   mgt887: { code: 'MGT 887', name: 'Negotiations', prof: 'Horace Slughorn' },
   mgt402: { code: 'MGT 402', name: 'Basics of Accounting', prof: 'Albus Dumbledore' },
   mgt538: { code: 'MGT 538', name: 'Mastering Influence & Persuasion', prof: 'Gilderoy Lockhart' },
@@ -35,6 +36,11 @@ const DECKS = {
   mgt403: {
     title: ['The Normal Distribution', 'Predicting the future, responsibly'],
     content: ["Bayes' Rule", ['P(A | B) = P(B | A) · P(A) / P(B)', 'Prior → evidence → posterior', 'Base rates matter more than you think', 'A crystal ball is not a confidence interval']],
+    chart: 'normal',
+  },
+  mgt407: {
+    title: ['Statistics in Plain English', 'If you can’t say it simply, say it again'],
+    content: ['Say it like a human', ['Mean: the typical value', 'Std. deviation: how far a typical point strays', 'Slope: how much Y moves when X moves by 1', 'p-value: how surprising, if nothing were going on']],
     chart: 'normal',
   },
   mgt887: {
