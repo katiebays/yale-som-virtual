@@ -29,6 +29,22 @@ Open http://localhost:5173 and click **Click to walk in**.
 
 **Phone / tablet:** tap **Tap to walk in**. The left-thumb joystick walks (push it all the way to sprint), dragging anywhere else looks around, and there are on-screen jump and pause buttons. On a laptop, click **Use on-screen joystick** to try the phone controls. WASD still works in that mode.
 
+## Talk to Prof. Zaman (AI backend)
+
+Prof. Tauhid Zaman stands in Evans 2200 (his MGT 409 room in `data/yale_som.db`). Aim the crosshair at him and **click** or press **E** (on phones, tap **Talk**) to open a chat. He turns to face you while you talk.
+
+The chat runs on a FastAPI backend in `backend/`. Each professor is a PydanticAI agent whose prompt is built from the course database, with read-only tools to search courses, rooms, and instructors.
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+copy .env.example .env   # then fill in PORTKEY_API_KEY (or keep it in a parent folder's .env)
+.\.venv\Scripts\python.exe -m uvicorn main:app --port 8000
+```
+
+Then run `npm run dev` in another terminal. Vite forwards `/api` to port 8000. For a deployed frontend, set `VITE_API_URL` to the backend's URL and add the frontend's origin to the backend's `ALLOWED_ORIGINS`.
+
 ## How it's built
 
 - `src/layout.js`: the floor plan in meters (+x east, -z north). It holds the drums, library, Beinecke, stairs, meeting rooms, wall colliders, and room lookup. Each classroom faces the courtyard, with the whiteboard and podium on the inner side and stadium-seating rows (32 cm risers) stepping up toward the outer wall; its two doors are at the front corners. You climb the center-aisle steps one riser at a time.

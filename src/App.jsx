@@ -4,7 +4,12 @@ import World from './World.jsx'
 import Player from './Player.jsx'
 import Minimap from './Minimap.jsx'
 import TouchControls from './TouchControls.jsx'
+import Interact from './Interact.jsx'
+import ChatWindow from './ChatWindow.jsx'
 import { EYE, SPAWN } from './layout.js'
+import { PROF_INFO, talk } from './talk.js'
+
+const typing = (e) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
 
 export default function App() {
   const [locked, setLocked] = useState(false)
@@ -24,11 +29,47 @@ export default function App() {
     setTouchOn(on)
   }
   const playing = locked || touchOn
+
+  // talking to AI professors: aim the crosshair at one, then click / press E / tap Talk
+  const [aim, setAim] = useState(null)
+  const [chatWith, setChatWith] = useState(null)
+  const chatFromTouch = useRef(false)
+  const onAim = useCallback((id) => setAim(id), [])
+  const openChat = useCallback(
+    (id) => {
+      talk.with = id
+      setChatWith(id)
+      setAim(null)
+      chatFromTouch.current = touchRef.current.active
+      if (touchRef.current.active) setTouch(false)
+      else document.exitPointerLock?.()
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+  // resume = true when closed with the button (a click, so pointer lock can be re-requested)
+  const closeChat = (resume) => {
+    talk.with = null
+    setChatWith(null)
+    if (!resume) return
+    if (chatFromTouch.current) setTouch(true)
+    else lockRef.current?.()
+  }
+
   useEffect(() => {
-    const k = (e) => e.code === 'KeyM' && setShowMap((v) => !v)
+    const k = (e) => {
+      if (typing(e)) return
+      if (e.code === 'KeyM') setShowMap((v) => !v)
+      if (e.code === 'KeyE' && aim && playing) openChat(aim)
+    }
+    const click = () => aim && locked && openChat(aim)
     window.addEventListener('keydown', k)
-    return () => window.removeEventListener('keydown', k)
-  }, [])
+    window.addEventListener('mousedown', click)
+    return () => {
+      window.removeEventListener('keydown', k)
+      window.removeEventListener('mousedown', click)
+    }
+  }, [aim, locked, playing, openChat])
 
   return (
     <>
@@ -38,6 +79,7 @@ export default function App() {
       >
         <World />
         <Player lockRef={lockRef} mapRef={mapRef} touchRef={touchRef} onLock={onLock} onWhere={onWhere} />
+        <Interact onAim={onAim} />
       </Canvas>
 
       <div className="where">
@@ -50,10 +92,28 @@ export default function App() {
       <button className="maptoggle" onClick={() => setShowMap((s) => !s)}>
         {showMap ? 'hide map' : 'map'}
       </button>
-      {playing && <div className="crosshair" />}
+      {playing && <div className={aim ? 'crosshair on' : 'crosshair'} />}
       {touchOn && <TouchControls touchRef={touchRef} onPause={() => setTouch(false)} />}
+      {playing && aim && (
+        touchOn ? (
+          <button
+            className="talkhint tap"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              openChat(aim)
+            }}
+          >
+            Talk to {PROF_INFO[aim].name}
+          </button>
+        ) : (
+          <div className="talkhint">
+            <b>Click</b> or press <b>E</b> to talk to {PROF_INFO[aim].name}
+          </div>
+        )
+      )}
+      {chatWith && <ChatWindow profId={chatWith} onClose={closeChat} />}
 
-      {!playing && (
+      {!playing && !chatWith && (
         <div className="overlay" onClick={() => (isTouch ? setTouch(true) : lockRef.current?.())}>
           <div className="card">
             <div className="kicker">Yale SOM · Evans Hall</div>
