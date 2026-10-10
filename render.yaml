@@ -1,0 +1,20 @@
+# Render Blueprint for the AI professor backend (FastAPI).
+# The 3D frontend is deployed separately as a Render Static Site / GitHub Pages.
+services:
+  - type: web
+    name: yale-som-virtual-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORTKEY_API_KEY
+        sync: false # Render asks for this when you create the service; never stored in the repo
+      - key: OPENAI_MODEL
+        value: gpt-6-luna
+      - key: ALLOWED_ORIGINS
+        value: https://katiebays.github.io
+      - key: CHAT_RATE_LIMIT
+        value: "20"

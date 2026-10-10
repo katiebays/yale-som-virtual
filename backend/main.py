@@ -18,7 +18,10 @@ for folder in [HERE, *HERE.parents][:5]:
     load_dotenv(folder / ".env")
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
+import time  # noqa: E402
+from collections import defaultdict, deque  # noqa: E402
+
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 from pydantic_ai.messages import ModelMessage  # noqa: E402
@@ -31,6 +34,9 @@ logging.basicConfig(level=logging.INFO)
 
 MAX_HISTORY = 40  # messages kept per conversation
 MAX_SESSIONS = 500
+# the API is public once deployed, so cap messages per visitor to protect the Portkey budget
+RATE_LIMIT = int(os.getenv("CHAT_RATE_LIMIT", "20"))  # messages per window per IP
+RATE_WINDOW = 600  # seconds
 
 app = FastAPI(title="Yale SOM Virtual professors")
 origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
@@ -39,6 +45,23 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", 
 
 agents = build_agents()
 sessions: dict[tuple[str, str], list[ModelMessage]] = {}  # (session_id, professor_id) -> history
+recent: dict[str, deque[float]] = defaultdict(deque)  # client ip -> message times
+
+
+def client_ip(request: Request) -> str:
+    # Render sits behind a proxy; the first X-Forwarded-For hop is the visitor
+    forwarded = request.headers.get("x-forwarded-for", "")
+    return forwarded.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+
+
+def check_rate(ip: str) -> None:
+    now = time.monotonic()
+    times = recent[ip]
+    while times and now - times[0] > RATE_WINDOW:
+        times.popleft()
+    if len(times) >= RATE_LIMIT:
+        raise HTTPException(429, "Whoa, that's a lot of questions. Give the professor a few minutes and try again.")
+    times.append(now)
 
 
 class ChatIn(BaseModel):
@@ -62,10 +85,11 @@ def professors() -> list[dict]:
 
 
 @app.post("/api/chat", response_model=ChatOut)
-async def chat(body: ChatIn) -> ChatOut:
+async def chat(body: ChatIn, request: Request) -> ChatOut:
     agent = agents.get(body.professor_id)
     if agent is None:
         raise HTTPException(404, f"No professor called {body.professor_id!r}")
+    check_rate(client_ip(request))
     key = (body.session_id, body.professor_id)
     try:
         result = await agent.run(
